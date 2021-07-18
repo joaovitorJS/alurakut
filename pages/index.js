@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainGrid from "../src/components/MainGrid";
 import Box from "../src/components/Box";
 import { ProfileRelationsBoxWrapper } from "../src/components/ProfileRelations";
@@ -29,6 +29,29 @@ function ProfileSidebar(props) {
   );
 }
 
+function ProfileRelationsBox({items, title}) {
+  return (
+    <ProfileRelationsBoxWrapper>
+      <h2 className="smallTitle">
+        {title} ({items.length})
+      </h2>
+    
+      <ul>
+        {items.map((follow) => {
+          return (
+            <li key={follow.id}>
+              <a href={`/users/${follow.title}`} >
+                <img src={follow.image} alt=""/>
+                <span>{follow.title}</span>
+              </a>
+            </li>
+          )
+        })}
+      </ul>
+    </ProfileRelationsBoxWrapper>
+  );
+}
+
 export default function Home() {
   const githubUser = "joaovitorJS";
   const favoritePerson = [
@@ -39,7 +62,20 @@ export default function Home() {
     "marcobrunodev",
     "felipefialho"
   ];
-  
+
+  const [followers, setFollowers] = useState([]);
+
+  useEffect(() => {
+    fetch('https://api.github.com/users/joaovitorJS/followers')
+      .then((data) => {
+        return data.json();
+      })
+      .then((followersData) => {
+        setFollowers(followersData);
+      });
+
+  }, []);
+
   const [relations, setRelations] = useState([{
     id: new Date().toISOString(),
     title: 'Eu odeio acordar cedo',
@@ -102,6 +138,12 @@ export default function Home() {
         </div>
 
         <div className="profileRelationsArea" style={{ gridArea: "profileRelationsArea" }}>
+
+          <ProfileRelationsBox 
+            items={followers} 
+            title="Seguidores"
+          />
+
           <ProfileRelationsBoxWrapper>
             <h2 className="smallTitle">Comunidades ({relations.length})</h2>
           
@@ -135,10 +177,6 @@ export default function Home() {
               })}
             </ul>
           </ProfileRelationsBoxWrapper>
-
-          <Box>
-            Comunidades
-          </Box>
         </div>
       </MainGrid>
     </>
