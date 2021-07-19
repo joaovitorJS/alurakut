@@ -64,8 +64,10 @@ export default function Home() {
   ];
 
   const [followers, setFollowers] = useState([]);
+  const [relations, setRelations] = useState([]);
 
   useEffect(() => {
+    // GET - trazendo os seguidos do github
     fetch('https://api.github.com/users/joaovitorJS/followers')
       .then((data) => {
         return data.json();
@@ -74,24 +76,59 @@ export default function Home() {
         setFollowers(followersData);
       });
 
+    fetch('https://graphql.datocms.com/', {
+      method: 'POST',
+      headers: {
+        'Authorization': '983598932e1b105809a81ed98eceaf',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        query: `query {
+          allCommunities {
+            id
+            title
+            imageUrl
+            creatorSlug
+          }
+        }` 
+      })
+    })
+    .then((response) => response.json())
+    .then((dataResponse) => {
+      setRelations(dataResponse.data.allCommunities);
+    })
   }, []);
 
-  const [relations, setRelations] = useState([{
-    id: new Date().toISOString(),
-    title: 'Eu odeio acordar cedo',
-    image: 'https://alurakut.vercel.app/capa-comunidade-01.jpg'
-  }]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
     
     const relation = {
-      id: '14141414141413412312',
       title: formData.get('title'),
-      image: formData.get('image')  
-    } 
-    setRelations([...relations, relation]);
+      imageUrl: formData.get('image'),
+      creatorSlug: githubUser
+    };
+    formData.set('title', null);
+    formData.set('image', null);
+
+    fetch('/api/communities', {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(relation),
+    })
+    .then((response) => {
+      return response.json();
+      
+    })
+    .then((data) => setRelations([...relations, data.record]))
+    .catch((err) => console.log(err));
+    
+
   }
 
   return (
@@ -151,8 +188,8 @@ export default function Home() {
               {relations.map((relation) => {
                 return (
                   <li key={relation.id}>
-                    <a href={`/users/${relation.title}`} >
-                      <img src={relation.image} alt=""/>
+                    <a href={`/communities/${relation.id}`} >
+                      <img src={relation.imageUrl} alt=""/>
                       <span>{relation.title}</span>
                     </a>
                   </li>
