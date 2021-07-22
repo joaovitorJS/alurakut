@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import nookies from 'nookies';
+import jwt from 'jsonwebtoken';
+
 import MainGrid from "../src/components/MainGrid";
 import Box from "../src/components/Box";
 import { ProfileRelationsBoxWrapper } from "../src/components/ProfileRelations";
@@ -10,38 +13,38 @@ function ProfileSidebar(props) {
 
   return (
     <Box as="aside">
-      <img 
+      <img
         src={`https://github.com/${props.githubUser}.png`}
         alt="Foto de perfil"
-        style={{ borderRadius: "8px"}}
+        style={{ borderRadius: "8px" }}
       />
 
-      <hr/>
+      <hr />
       <p>
         <a className="boxLink" href={`https://github.com/${props.githubUser}`}>
           @{props.githubUser}
         </a>
       </p>
-      <hr/>
+      <hr />
 
       <AlurakutProfileSidebarMenuDefault />
     </Box>
   );
 }
 
-function ProfileRelationsBox({items, title}) {
+function ProfileRelationsBox({ items, title }) {
   return (
     <ProfileRelationsBoxWrapper>
       <h2 className="smallTitle">
         {title} ({items.length})
       </h2>
-    
+
       <ul>
         {items.map((follow) => {
           return (
             <li key={follow.id}>
               <a href={`/users/${follow.title}`} >
-                <img src={follow.image} alt=""/>
+                <img src={follow.image} alt="" />
                 <span>{follow.title}</span>
               </a>
             </li>
@@ -52,13 +55,14 @@ function ProfileRelationsBox({items, title}) {
   );
 }
 
-export default function Home() {
-  const githubUser = "joaovitorJS";
+export default function Home({githubUser}) {
+  
+  
   const favoritePerson = [
-    "juunegreiros", 
-    "omariosouto", 
-    "peas", 
-    "rafaballerini", 
+    "juunegreiros",
+    "omariosouto",
+    "peas",
+    "rafaballerini",
     "marcobrunodev",
     "felipefialho"
   ];
@@ -91,20 +95,20 @@ export default function Home() {
             imageUrl
             creatorSlug
           }
-        }` 
+        }`
       })
     })
-    .then((response) => response.json())
-    .then((dataResponse) => {
-      setRelations(dataResponse.data.allCommunities);
-    })
+      .then((response) => response.json())
+      .then((dataResponse) => {
+        setRelations(dataResponse.data.allCommunities);
+      })
   }, []);
 
 
   const handleSubmit = (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    
+
     const relation = {
       title: formData.get('title'),
       imageUrl: formData.get('image'),
@@ -121,22 +125,22 @@ export default function Home() {
       },
       body: JSON.stringify(relation),
     })
-    .then((response) => {
-      return response.json();
-      
-    })
-    .then((data) => setRelations([...relations, data.record]))
-    .catch((err) => console.log(err));
-    
+      .then((response) => {
+        return response.json();
+
+      })
+      .then((data) => setRelations([...relations, data.record]))
+      .catch((err) => console.log(err));
+
 
   }
 
   return (
     <>
-      <AlurakutMenu githubUser={githubUser}/>
+      <AlurakutMenu githubUser={githubUser} />
       <MainGrid>
         <div className="profileArea" style={{ gridArea: "profileArea" }}>
-          <ProfileSidebar githubUser={githubUser}/>
+          <ProfileSidebar githubUser={githubUser} />
         </div>
 
         <div className="welcomeArea" style={{ gridArea: "welcomeArea" }}>
@@ -152,7 +156,7 @@ export default function Home() {
             <h2 className="subTitle">O que você deseja fazer?</h2>
             <form onSubmit={handleSubmit}>
               <div>
-                <input 
+                <input
                   type="text"
                   placeholder="Qual vai ser o nome da sua comunidade?"
                   name="title"
@@ -160,7 +164,7 @@ export default function Home() {
                 />
               </div>
               <div>
-                <input 
+                <input
                   placeholder="Coloque uma URL para usarmos de capa"
                   name="image"
                   aria-label="Coloque uma URL para usarmos de capa"
@@ -176,20 +180,20 @@ export default function Home() {
 
         <div className="profileRelationsArea" style={{ gridArea: "profileRelationsArea" }}>
 
-          <ProfileRelationsBox 
-            items={followers} 
+          <ProfileRelationsBox
+            items={followers}
             title="Seguidores"
           />
 
           <ProfileRelationsBoxWrapper>
             <h2 className="smallTitle">Comunidades ({relations.length})</h2>
-          
+
             <ul>
               {relations.map((relation) => {
                 return (
                   <li key={relation.id}>
                     <a href={`/communities/${relation.id}`} >
-                      <img src={relation.imageUrl} alt=""/>
+                      <img src={relation.imageUrl} alt="" />
                       <span>{relation.title}</span>
                     </a>
                   </li>
@@ -197,7 +201,7 @@ export default function Home() {
               })}
             </ul>
           </ProfileRelationsBoxWrapper>
-          
+
           <ProfileRelationsBoxWrapper>
             <h2 className="smallTitle">Pessoas da comunidade ({favoritePerson.length})</h2>
 
@@ -206,7 +210,7 @@ export default function Home() {
                 return (
                   <li key={person}>
                     <a href={`/users/${person}`} >
-                      <img src={`https://github.com/${person}.png`} alt={`Foto do(a) ${person}`}/>
+                      <img src={`https://github.com/${person}.png`} alt={`Foto do(a) ${person}`} />
                       <span>{person}</span>
                     </a>
                   </li>
@@ -218,4 +222,33 @@ export default function Home() {
       </MainGrid>
     </>
   );
+}
+
+export async function getServerSideProps(context) {
+  const cookies = nookies.get(context);
+  const token = cookies.USER_TOKEN;
+ 
+  const { isAuthenticated } = await fetch('https://alurakut.vercel.app/api/auth', {
+    headers: {
+      Authorization: token,
+    }
+  })
+  .then(response => response.json());
+
+  if (!isAuthenticated) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false
+      }
+    }
+  }
+
+  const { githubUser } = jwt.decode(token);
+
+  return {
+    props: {
+      githubUser,
+    }
+  }
 }
